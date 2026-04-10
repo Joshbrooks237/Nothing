@@ -1,0 +1,20 @@
+# Rust build artifacts
+nothing-core/target/
+
+# Node.js
+cli/node_modules/
+
+# Generated token files (don't commit someone's actual Nothing)
+*.nothing
+
+# Key files — NEVER commit these
+.nothing/
+
+# OS garbage
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp

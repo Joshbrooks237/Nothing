@@ -1,0 +1,96 @@
+[package]
+name        = "nothing-core"
+version     = "0.1.0"
+edition     = "2021"
+description = "Nothing — a cryptographic bearer instrument with no identity in transit"
+
+# The binary is named `nothing` so you run it as `./nothing keygen`, etc.
+[[bin]]
+name = "nothing"
+path = "src/main.rs"
+
+# The library exposes all modules so the CLI wrapper or tests can import them.
+[lib]
+name = "nothing_core"
+path = "src/lib.rs"
+
+[dependencies]
+
+# ── Cryptographic primitives ───────────────────────────────────────────────────
+#
+# dryoc is a pure-Rust implementation of libsodium's NaCl API.
+# It gives us the same function names and semantics as libsodium (crypto_sign,
+# crypto_box, sealed_box, etc.) without requiring the C library to be installed.
+# Think of it as "libsodium, rewritten in Rust."
+dryoc = "0.7"
+
+# RSA arithmetic for the blind signature mint keypair.
+# rsa is pure Rust (no C dependency).
+rsa = { version = "0.9", features = ["sha2"] }
+
+# Big-integer types needed to do the RSA blinding math by hand:
+# blinded = message * r^e mod n, then sig = blinded^d mod n, etc.
+# num-bigint-dig is the big-integer crate that rsa 0.9 uses internally.
+# Using the same crate means our BigUint is exactly the same type as rsa's,
+# so we can do modular arithmetic on RSA key components directly.
+# It also ships with a built-in ModInverse trait — no extra crate needed.
+num-bigint-dig = { version = "0.8", features = ["rand"] }
+num-traits     = "0.2"   # provides Zero, One, etc.
+
+# SHA-256: used to hash the token serial before blind-signing it.
+sha2 = "0.10"
+
+# ── Peer-to-peer transport ─────────────────────────────────────────────────────
+#
+# libp2p gives us encrypted mesh networking over TCP.
+# Features enabled:
+#   tcp         — raw TCP connections
+#   noise       — Noise protocol handshake (authenticated encryption of transport)
+#   yamux       — stream multiplexer on top of a single TCP connection
+#   identify    — peers announce their multiaddrs to each other
+#   request-response — simple one-shot RPC (we use it to ship tokens)
+#   macros      — enables the #[derive(NetworkBehaviour)] proc macro
+#   tokio       — async I/O backend (matches our runtime below)
+libp2p = { version = "0.54", features = [
+    "tcp",
+    "noise",
+    "yamux",
+    "tokio",
+    "identify",
+    "request-response",
+    "cbor",              # CBOR encoding for request-response messages
+    "macros",
+] }
+
+# Tokio: async runtime.  "full" enables all features (timers, channels, etc.)
+tokio = { version = "1", features = ["full"] }
+
+# Futures utilities — lets us call .next().await on the libp2p Swarm event stream.
+futures = "0.3"
+
+# ── CLI / serialisation / utility ─────────────────────────────────────────────
+
+# clap: parses command-line arguments.  "derive" lets us annotate structs.
+clap = { version = "4", features = ["derive"] }
+
+# serde + serde_json: serialise tokens and keypairs to/from JSON files on disk.
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# hex and base64: human-readable encoding for printing/storing byte arrays.
+hex    = "0.4"
+base64 = "0.22"
+
+# rand: random number generation (thread_rng, gen_biguint_range, etc.)
+rand = "0.8"
+
+# anyhow / thiserror: ergonomic error handling without boilerplate.
+anyhow    = "1"
+thiserror = "1"
+
+# dirs: resolves the user's home directory (~/.nothing/).
+dirs = "5"
+
+# tracing: structured logging.
+tracing            = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
