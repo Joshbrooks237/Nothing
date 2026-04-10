@@ -178,11 +178,23 @@ pub async fn cmd_listen(port: u16) -> Result<()> {
     loop {
         match swarm.select_next_some().await {
             // Print the actual listening address once the OS binds the port.
+            //
+            // libp2p fires this event multiple times:
+            //   1. /ip4/0.0.0.0/tcp/PORT  — the wildcard bind (not usable for dialing)
+            //   2. /ip4/127.0.0.1/tcp/PORT — loopback (usable for local testing)
+            //   3. /ip4/192.168.x.x/tcp/PORT — LAN address (usable over the network)
+            //
+            // We skip 0.0.0.0 so only copy-pasteable addresses are printed.
             SwarmEvent::NewListenAddr { address, .. } => {
-                println!(
-                    "Listening on: {}/p2p/{}",
-                    address, local_peer_id
-                );
+                use libp2p::multiaddr::Protocol;
+                let is_wildcard = address.iter().any(|p| {
+                    matches!(p, Protocol::Ip4(a) if a == std::net::Ipv4Addr::UNSPECIFIED)
+                        || matches!(p, Protocol::Ip6(a) if a == std::net::Ipv6Addr::UNSPECIFIED)
+                });
+                if !is_wildcard {
+                    println!("Listening on: {}/p2p/{}", address, local_peer_id);
+                    println!("  ↳ copy this address for `nothing send`");
+                }
             }
 
             // A peer connected or disconnected — informational only.
