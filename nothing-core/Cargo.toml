@@ -88,6 +88,32 @@ rand = "0.8"
 anyhow    = "1"
 thiserror = "1"
 
+# ── ZK settlement — Phase 2 ───────────────────────────────────────────────────
+#
+# The arkworks ecosystem provides a modular, pure-Rust implementation of
+# elliptic curve cryptography and zero-knowledge proof systems.
+#
+# ark-bn254:   the BN254 (aka alt_bn128) pairing-friendly elliptic curve.
+#              Used by Ethereum, snarkjs, circom, and nearly all ZK tooling.
+#              The scalar field Fr has ~254-bit elements.
+#              The base field Fq also has ~254-bit elements.
+#              G1 points have Fq coordinates; G2 points have Fq2 = Fq[u] coordinates.
+#
+# ark-groth16: Groth16 proving/verification system over any pairing-friendly
+#              curve.  We use it only for *verification* — proof generation
+#              happens in Node.js/snarkjs.
+#
+# ark-ff:      Field arithmetic traits (PrimeField, BigInteger, from_be_bytes_mod_order...).
+#
+# ark-ec:      Elliptic curve traits (AffineRepr, is_on_curve, ...).
+#
+# ark-snark:   The SNARK trait that defines the verify() interface.
+ark-bn254    = "0.4"
+ark-groth16  = "0.4"
+ark-ff       = "0.4"
+ark-ec       = "0.4"
+ark-snark    = "0.4"
+
 # dirs: resolves the user's home directory (~/.nothing/).
 dirs = "5"
 

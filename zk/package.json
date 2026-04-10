@@ -1,0 +1,24 @@
+{
+  "name": "nothing-zk",
+  "version": "2.0.0",
+  "description": "ZK settlement proof layer for Nothing — Phase 2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compile":      "bash compile.sh",
+    "setup":        "node setup.js",
+    "prove":        "node prove.js",
+    "verify":       "node verify.js",
+    "install-deps": "npm install && npm run install-circom"
+  },
+  "dependencies": {
+    "snarkjs":            "^0.7.5",
+    "circomlib":          "^2.0.5",
+    "@zk-email/circuits": "^6.1.0",
+    "circomlibjs":        "^0.1.7",
+    "ffjavascript":       "^0.3.1"
+  },
+  "devDependencies": {
+    "circom2": "^0.2.1"
+  }
+}

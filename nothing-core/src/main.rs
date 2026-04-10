@@ -7,6 +7,7 @@
 //!   send    — send a token to a peer
 //!   info    — print your public keys
 //!   wallet  — list tokens in your local wallet
+//!   settle  — generate and verify a ZK settlement proof (Phase 2)
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -14,6 +15,7 @@ use clap::{Parser, Subcommand};
 use nothing_core::crypto::blind_sig::MintKeypair;
 use nothing_core::crypto::keypair::{BoxKeypair, SignKeypair};
 use nothing_core::crypto::token::NothingToken;
+use nothing_core::settlement::settle_token;
 use nothing_core::storage::wallet::{keys_dir, Wallet};
 use nothing_core::transport::node::{cmd_listen, cmd_send};
 
@@ -93,6 +95,29 @@ enum Commands {
 
     /// List tokens in your local wallet.
     Wallet,
+
+    /// Settle a Nothing token — Phase 2: ZK proof of valid ownership.
+    ///
+    /// This is the cryptographic binding event.  The holder proves they know
+    /// a valid (serial, signature) pair without revealing either.  If the
+    /// proof verifies and the nullifier is fresh, Nothing classifies as a coin.
+    ///
+    /// Prerequisites:
+    ///   1. Compile the circuit:    bash zk/compile.sh
+    ///   2. Run trusted setup:      node zk/setup.js
+    ///   3. Then settle:            nothing settle <token.nothing>
+    ///
+    /// Example:
+    ///   nothing settle ~/tokens/abc123.nothing
+    Settle {
+        /// Path to the .nothing token file to settle.
+        token: String,
+
+        /// Path to the zk/ directory containing prove.js and the compiled circuit.
+        /// Defaults to ./zk (relative to current directory).
+        #[arg(long, default_value = "zk")]
+        zk_dir: String,
+    },
 }
 
 // ─── main ─────────────────────────────────────────────────────────────────────
@@ -116,6 +141,7 @@ async fn main() -> Result<()> {
         Commands::Send { peer, token } => cmd_send(&peer, &token).await,
         Commands::Info => cmd_info(),
         Commands::Wallet => cmd_wallet(),
+        Commands::Settle { token, zk_dir } => cmd_settle(&token, &zk_dir),
     }
 }
 
@@ -232,6 +258,60 @@ fn cmd_wallet() -> Result<()> {
             &token.mint_pubkey.n_hex[..16]
         );
     }
+
+    Ok(())
+}
+
+// ─── settle ───────────────────────────────────────────────────────────────────
+
+fn cmd_settle(token_path_str: &str, zk_dir_str: &str) -> Result<()> {
+    use std::path::Path;
+
+    let token_path = Path::new(token_path_str);
+    let zk_dir     = Path::new(zk_dir_str);
+
+    // ── Sanity: check the token file exists and has a valid signature first.
+    //    Phase 1 verification before we spend time generating a ZK proof.
+    println!("Loading token: {}", token_path_str);
+    let token = NothingToken::load(token_path)
+        .with_context(|| format!("loading token from {:?}", token_path))?;
+
+    println!("Verifying RSA blind signature (Phase 1 check)...");
+    let sig_valid = token.verify_signature().context("signature verification")?;
+    if !sig_valid {
+        return Err(anyhow::anyhow!(
+            "Token signature is INVALID.  The token was not minted by the claimed mint key.\n\
+             Settlement rejected at Phase 1 check."
+        ));
+    }
+    println!("  ✓ RSA blind signature valid.");
+    println!("  Token short ID: {}", token.short_id());
+
+    // ── Now run the Phase 2 ZK settlement proof. ─────────────────────────────
+    println!();
+    println!("╔═══════════════════════════════════════════════╗");
+    println!("║   Nothing — Phase 2: ZK Settlement            ║");
+    println!("╚═══════════════════════════════════════════════╝");
+    println!();
+    println!("  The prover will demonstrate knowledge of a valid");
+    println!("  (serial, signature) pair without revealing either.");
+    println!();
+
+    let nullifier = settle_token(token_path, zk_dir)
+        .context("settlement failed")?;
+
+    // ── Settlement success ────────────────────────────────────────────────────
+    println!();
+    println!("╔═══════════════════════════════════════════════╗");
+    println!("║   ✓  NOTHING HAS CLASSIFIED AS A COIN.        ║");
+    println!("╚═══════════════════════════════════════════════╝");
+    println!();
+    println!("  Nullifier:  {}", nullifier);
+    println!("  Token ID:   {}", token.short_id());
+    println!();
+    println!("  The settlement is final.  The nullifier has been");
+    println!("  recorded to prevent double-spend.");
+    println!();
 
     Ok(())
 }
