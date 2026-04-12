@@ -1,0 +1,16 @@
+{
+  "name": "nothing-web",
+  "version": "1.0.0",
+  "description": "Local web interface for the Nothing bearer instrument",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev":   "node server.js"
+  },
+  "dependencies": {
+    "express":  "^4.19.2",
+    "multer":   "^1.4.5-lts.1"
+  }
+}

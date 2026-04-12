@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nothing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ──────────────────────────────────────────────────────── -->
+  <nav>
+    <div class="nav-inner">
+      <span class="nav-logo">N<span class="accent">∅</span>THING</span>
+      <div class="nav-links">
+        <a href="#what">What</a>
+        <a href="#how">How</a>
+        <a href="#keys">Keys</a>
+        <a href="#mint">Mint</a>
+        <a href="#wallet">Wallet</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Hero ────────────────────────────────────────────────────────────── -->
+  <section class="hero" id="top">
+    <div class="hero-inner">
+      <div class="hero-tag">bearer instrument · peer-to-peer · zero-knowledge</div>
+      <h1>Before it lands,<br/>it's <span class="accent">nothing</span>.</h1>
+      <p class="hero-sub">
+        A cryptographic token with no ticker, no ledger, and no identity in transit.
+        It does not classify as a coin until the moment of successful settlement —
+        at which point it has already arrived.
+      </p>
+      <div class="hero-cta">
+        <a href="#mint" class="btn-primary">Mint a Nothing</a>
+        <a href="#what" class="btn-ghost">Learn how it works →</a>
+      </div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="art-ring ring-1"></div>
+      <div class="art-ring ring-2"></div>
+      <div class="art-ring ring-3"></div>
+      <div class="art-center">∅</div>
+    </div>
+  </section>
+
+  <!-- ── What is Nothing ─────────────────────────────────────────────────── -->
+  <section class="section" id="what">
+    <div class="container">
+      <div class="section-label">01 / WHAT</div>
+      <h2>What is Nothing?</h2>
+
+      <div class="prose">
+        <p>
+          Nothing is a <strong>cryptographic bearer instrument</strong> — think of it like a
+          signed banknote that only the right person can read, traveling through a network
+          where no one can tell what it is or where it came from.
+        </p>
+        <p>
+          Traditional digital money requires a ledger: a list of who owns what, maintained
+          by someone you trust (a bank, a blockchain). Nothing requires no such list.
+          It carries its own proof of validity inside itself, sealed against anyone who
+          isn't the intended recipient.
+        </p>
+        <p>
+          Before it arrives it is literally <em>nothing</em> — an opaque blob of bytes with
+          no ticker symbol, no account number, no asset class. The moment the recipient
+          verifies it, it becomes something. Not a second earlier.
+        </p>
+      </div>
+
+      <div class="principle-grid">
+        <div class="principle-card">
+          <div class="principle-icon">⌀</div>
+          <h3>No Ledger</h3>
+          <p>There is no record of who owns what. No database anyone can query.
+             No account required. The token is the only record, held only by its owner.</p>
+        </div>
+        <div class="principle-card">
+          <div class="principle-icon">◈</div>
+          <h3>No Identity in Transit</h3>
+          <p>On the wire, the token is double-encrypted noise. Even if intercepted,
+             it reveals nothing about what it is, who sent it, or who receives it.</p>
+        </div>
+        <div class="principle-card">
+          <div class="principle-icon">◉</div>
+          <h3>Settlement = Classification</h3>
+          <p>Nothing becomes a coin only at the moment a zero-knowledge proof of valid
+             ownership is verified. That event is the birth of the coin. Not before.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── How it works ────────────────────────────────────────────────────── -->
+  <section class="section section-alt" id="how">
+    <div class="container">
+      <div class="section-label">02 / HOW</div>
+      <h2>How it works</h2>
+
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-body">
+            <h3>Mint</h3>
+            <p>
+              A random 32-byte serial number is generated. The serial is <strong>blinded</strong>
+              — transformed with a secret blinding factor — and sent to the mint for signing.
+              The mint signs it using RSA without ever seeing the actual serial.
+              Then the signature is <strong>unblinded</strong>, producing a valid RSA signature
+              over the serial that the mint can never link back to the signing request.
+            </p>
+            <p>
+              This is <strong>Chaum's blind signature</strong> (1983). The same mechanism
+              proposed for anonymous digital cash decades before Bitcoin existed.
+            </p>
+            <div class="code-callout">
+              sig = unblind(mint_sign(blind(serial, r)), r)<br/>
+              verify(serial, sig, mint_pubkey) → true
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-body">
+            <h3>Transfer</h3>
+            <p>
+              The signed token is sealed to the recipient's X25519 public key using
+              <strong>libsodium's sealed-box construction</strong> — an ephemeral
+              Diffie-Hellman key exchange followed by XSalsa20-Poly1305 encryption.
+              The sender is anonymous; the ephemeral key is discarded immediately.
+            </p>
+            <p>
+              The sealed token travels over a <strong>libp2p mesh</strong> — a
+              peer-to-peer network with Noise protocol encryption at the transport
+              layer. Every byte on the wire is already ciphertext. The inner payload
+              is ciphertext inside ciphertext.
+            </p>
+            <div class="code-callout">
+              sealed = libsodium_sealed_box(token, recipient_x25519_pk)<br/>
+              transport = noise_encrypt(sealed) over tcp
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-body">
+            <h3>Settle</h3>
+            <p>
+              The holder generates a <strong>Groth16 zero-knowledge proof</strong>
+              — a 192-byte cryptographic object that proves they know a valid
+              (serial, signature) pair without revealing either.
+            </p>
+            <p>
+              The circuit verifies the RSA blind signature in-circuit using
+              <strong>2048-bit bigint arithmetic</strong> inside the BN254 elliptic curve field
+              (~210,000 constraints). A Poseidon hash of the serial acts as a
+              <strong>nullifier</strong> — publicly recorded to prevent double-spending
+              without identifying the token.
+            </p>
+            <p>
+              When the Groth16 pairing check passes, Nothing has classified as a coin.
+              Not a second before.
+            </p>
+            <div class="code-callout">
+              proof = groth16_prove(serial, sig, modulus)<br/>
+              verify(proof, modulus, nullifier) → ✓ coin
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="tech-strip">
+        <span class="tech-tag">Rust</span>
+        <span class="tech-tag">libp2p</span>
+        <span class="tech-tag">Noise Protocol</span>
+        <span class="tech-tag">RSA Blind Signatures</span>
+        <span class="tech-tag">Circom</span>
+        <span class="tech-tag">Groth16</span>
+        <span class="tech-tag">BN254</span>
+        <span class="tech-tag">libsodium</span>
+        <span class="tech-tag">Poseidon Hash</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Your Keys ───────────────────────────────────────────────────────── -->
+  <section class="section" id="keys">
+    <div class="container">
+      <div class="section-label">03 / KEYS</div>
+      <h2>Your keys</h2>
+      <p class="section-intro">
+        Your <strong>box public key</strong> is what you share with anyone who wants to
+        send you Nothing. Give them this key; they will mint a token sealed to it.
+        Only your secret key (stored locally, never transmitted) can open it.
+      </p>
+
+      <div id="keys-loading" class="loading-state">Loading keys…</div>
+      <div id="keys-error"   class="error-state" style="display:none"></div>
+
+      <div id="keys-panel" style="display:none">
+        <div class="key-card">
+          <div class="key-label">Box public key <span class="key-hint">(share this to receive Nothing)</span></div>
+          <div class="key-value">
+            <span id="box-pubkey" class="mono"></span>
+            <button class="copy-btn" onclick="copyKey('box-pubkey')">Copy</button>
+          </div>
+        </div>
+        <div class="key-card">
+          <div class="key-label">Sign public key <span class="key-hint">(your libp2p peer identity)</span></div>
+          <div class="key-value">
+            <span id="sign-pubkey" class="mono"></span>
+            <button class="copy-btn" onclick="copyKey('sign-pubkey')">Copy</button>
+          </div>
+        </div>
+        <div class="key-card">
+          <div class="key-label">Mint modulus preview <span class="key-hint">(first 32 hex chars of your RSA-2048 n)</span></div>
+          <div class="key-value">
+            <span id="mint-n" class="mono dim"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Mint ────────────────────────────────────────────────────────────── -->
+  <section class="section section-alt" id="mint">
+    <div class="container">
+      <div class="section-label">04 / MINT</div>
+      <h2>Mint a Nothing</h2>
+      <p class="section-intro">
+        Enter the recipient's X25519 box public key and an optional note.
+        The note is sealed — only the recipient can read it.
+        Leave recipient blank to mint to yourself (useful for testing).
+      </p>
+
+      <form id="mint-form" class="mint-form" onsubmit="doMint(event)">
+        <div class="form-group">
+          <label for="mint-recipient">Recipient box public key</label>
+          <div class="input-row">
+            <input
+              id="mint-recipient"
+              type="text"
+              class="mono"
+              placeholder="64-char hex — or leave blank to mint to yourself"
+              maxlength="64"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button type="button" class="btn-ghost-sm" onclick="mintToSelf()">Use mine</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="mint-note">Note <span class="optional">(sealed, private)</span></label>
+          <input
+            id="mint-note"
+            type="text"
+            placeholder="one Nothing"
+            maxlength="200"
+          />
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="mint-btn">Mint Nothing</button>
+        </div>
+      </form>
+
+      <div id="mint-result" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- ── Wallet ──────────────────────────────────────────────────────────── -->
+  <section class="section" id="wallet">
+    <div class="container">
+      <div class="section-label">05 / WALLET</div>
+      <h2>Wallet</h2>
+      <p class="section-intro">
+        Tokens received and stored in <code>~/.nothing/tokens/</code>.
+        No database — just files. Like cash in a drawer.
+      </p>
+
+      <div id="wallet-loading" class="loading-state">Loading wallet…</div>
+      <div id="wallet-empty"   class="empty-state"   style="display:none">
+        Wallet is empty. Mint something or receive a token via <code>nothing listen</code>.
+      </div>
+      <div id="wallet-grid"    class="token-grid"    style="display:none"></div>
+
+      <!-- Token detail drawer -->
+      <div id="token-drawer" class="token-drawer" style="display:none">
+        <div class="drawer-header">
+          <span class="drawer-title">Token detail</span>
+          <button class="drawer-close" onclick="closeDrawer()">✕</button>
+        </div>
+        <div id="drawer-content"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <span class="footer-logo">N<span class="accent">∅</span>THING</span>
+        <span class="footer-note">
+          Open source · Local only · No telemetry · No exchange listing · No ticker
+        </span>
+        <a href="https://github.com/Joshbrooks237/Nothing" target="_blank" class="footer-link">
+          GitHub →
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
